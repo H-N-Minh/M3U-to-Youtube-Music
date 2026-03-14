@@ -6,40 +6,66 @@ from ytmusicapi import YTMusic
 # PLAYLIST_NAME = "(M2) Hyper" # Replace with your actual playlist name
 PLAYLIST_NAME = "(M1) Trap & Dubstep"
 
-NUMBER_SONGS_REMOVE = 250 # Number of songs to remove
+NUMBER_SONGS_REMOVE = 216 # Number of songs to remove
 
-def findTracksOfPlaylist(yt):
-    """Find the tracks to be removed of the target playlist and return them along with the playlist ID."""
-    global PLAYLIST_NAME
-    global NUMBER_SONGS_REMOVE
 
-    # Get all your playlists
-    playlists = yt.get_library_playlists()
-    
-    # Find the target playlist
-    playlist_id = None
+def findPlaylistIdByName(yt):
+    """Find the playlist ID by its name."""
+    playlists = yt.get_library_playlists(limit=100)
     for playlist in playlists:
         if playlist['title'] == PLAYLIST_NAME:
-            playlist_id = playlist['playlistId']
-            break
-    if not playlist_id:
-        print(f"Error: Playlist '{PLAYLIST_NAME}' not found.")
-        return None, None
+            print(f"Found playlist '{PLAYLIST_NAME}'")
+            return playlist['playlistId']
+    print(f"Error: Playlist '{PLAYLIST_NAME}' not found.")
+    return None
 
-    # Get the playlist tracks
-    playlist_data = yt.get_playlist(playlist_id)
+def findTracksOfPlaylist(yt, playlist_id):
+    """Get the tracks of the playlist by its ID."""
+    playlist_data = yt.get_playlist(playlist_id, limit=None)
     tracks = playlist_data.get('tracks', [])
     if not tracks:
         print("Playlist is empty.")
-        return None, playlist_id
+        return None
+    print(f"Found {len(tracks)} tracks in the playlist.")
+    return tracks
 
-    # Identify the songs to remove (list is ordered by added time, newest first)
+def getTracksToRemove(tracks):
+    """Identify the songs to remove (list is ordered by added time, newest first)."""
+    global NUMBER_SONGS_REMOVE
     if NUMBER_SONGS_REMOVE > len(tracks):
+        print(f"Warning: NUMBER_SONGS_REMOVE ({NUMBER_SONGS_REMOVE}) is greater than the total number of tracks ({len(tracks)}). Adjusting to remove all tracks.")
         NUMBER_SONGS_REMOVE = len(tracks)
     songs_to_remove = tracks[:NUMBER_SONGS_REMOVE]
+    songs_not_removed = tracks[NUMBER_SONGS_REMOVE: NUMBER_SONGS_REMOVE + 10]  # For previewing the next songs that won't be removed
 
-    return songs_to_remove, playlist_id
+    if not songs_to_remove or not songs_not_removed:
+        print("Error: Could not identify songs to remove or songs that will not be removed.")
+        return None, None
+    
+    print(f"Identified {len(songs_to_remove)} songs to remove and {len(songs_not_removed)} following songs that will not be removed.")
+    return songs_to_remove, songs_not_removed
 
+def saftyCheck(songs_to_remove, songs_not_removed, total_tracks):
+    """Perform a safety check by previewing the songs to be removed and not removed."""
+    preview_count = min(10, len(songs_to_remove))
+
+    # Preview the songs to be removed
+    print(f"--- PREVIEW: The first and last {preview_count} of {len(songs_to_remove)} songs to be removed ---")
+    for i, song in enumerate(songs_to_remove[:preview_count]):
+        print(f"{i + 1}. {song.get('title')} - {song.get('artists')[0]['name']}")
+    print("...")
+    for i, song in enumerate(songs_to_remove[-preview_count:]):
+        print(f"{len(songs_to_remove) - preview_count + i + 1}. {song.get('title')} - {song.get('artists')[0]['name']}")
+
+    # Preview the songs that will not be removed
+    preview_count = min(10, len(songs_not_removed))
+    print(f"\n--- PREVIEW: The next {preview_count} songs that will NOT be removed ---")
+    for i, song in enumerate(songs_not_removed[:preview_count]):
+        print(f"{i + 1 + len(songs_to_remove)}. {song.get('title')} - {song.get('artists')[0]['name']}")
+    
+    print(f"\nTotal {total_tracks} tracks in playlist, {len(songs_to_remove)} will be removed, {total_tracks - len(songs_to_remove)} will remain.")
+    confirmation = input("\nDo you want to proceed with removing these songs? (y/n): ")
+    return confirmation.lower() == 'y'
 
 def remove_last_n_songs():
     global NUMBER_SONGS_REMOVE
@@ -47,31 +73,32 @@ def remove_last_n_songs():
     
     # Load authentication
     yt = YTMusic('browser.json')
+
+    # 1. Get the playlist ID
+    playlist_id = findPlaylistIdByName(yt)
+    if playlist_id is None:
+        return
     
-    # Get the tracks to be removed and the playlist ID
-    songs_to_remove, playlist_id = findTracksOfPlaylist(yt)
-    if songs_to_remove is None or playlist_id is None:
-        print("Error occurred while fetching tracks to be removed.")
+    # 2. Get the tracks of the playlist
+    tracks = findTracksOfPlaylist(yt, playlist_id)
+    if tracks is None:
         return
 
-    # 4. SAFETY CHECK: Print what will be deleted
-    preview_count = 10
-    print(f"--- PREVIEW: The first and last {min(preview_count, len(songs_to_remove))} of {NUMBER_SONGS_REMOVE} songs to be removed ---")
-    for i, song in enumerate(songs_to_remove[:preview_count]):
-        print(f"{i + 1}. {song.get('title')} - {song.get('artists')[0]['name']}")
-    print("...")
-    for i, song in enumerate(songs_to_remove[-preview_count:]):
-        print(f"{len(songs_to_remove) - preview_count + i + 1}. {song.get('title')} - {song.get('artists')[0]['name']}")
-
-    confirm = input("\nAre you sure you want to remove these? (y/n): ")
+    # 3. Identify the songs to remove
+    songs_to_remove, songs_not_removed = getTracksToRemove(tracks)
+    if songs_to_remove is None or songs_not_removed is None:
+        return
     
-    if confirm.lower() == 'y':
-        # Remove the items
-        print(f"Removing {len(songs_to_remove)} songs from '{PLAYLIST_NAME}'...")
-        yt.remove_playlist_items(playlist_id, songs_to_remove)
-        print("Successfully removed.")
-    else:
-        print("Operation cancelled.")
+    # 4. Safety check with preview
+    if not saftyCheck(songs_to_remove, songs_not_removed, len(tracks)):
+        print("Operation cancelled by the user.")
+        return
+    
+    # 5. Remove the identified songs
+    print(f"Removing {len(songs_to_remove)} songs from '{PLAYLIST_NAME}'...")
+    yt.remove_playlist_items(playlist_id, songs_to_remove)
+    print("Successfully removed.")    
+    
     
 
 # --- Configuration ---
