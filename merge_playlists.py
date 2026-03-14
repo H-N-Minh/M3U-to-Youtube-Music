@@ -17,8 +17,8 @@ from ytmusicapi import YTMusic
 # 6. Saves the list of unique video IDs to "To Add (video_id)" directory for easy reference when later adding to YTM playlists with another script.
 
 # --- CONFIGURATION ---
-NEW_DIR = "New Playlists"   # Directory containing the .m3u files for 9 playlists with newer songs
-OLD_DIR = "Old Playlists"   # Directory containing the .m3u files for 9 same playlists but with older songs
+NEW_DIR = "To Add Later"   # Directory containing the .m3u files for 9 playlists with newer songs
+OLD_DIR = "bro"   # Directory containing the .m3u files for 9 same playlists but with older songs
 TO_ADD_DIR = "To Add"       # Output directory for cleaned and merged .m3u files (playlists of same name from 2 folders above are merged, duplicates removed)
 VID_DIR = "To Add (video_id)"  # Output directory, contains the same songs of To Add folder, but in ID format, which is later used to add songs to YTM playlists with another script.)
 
