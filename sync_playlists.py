@@ -1,6 +1,7 @@
 import os
 import time
 from ytmusicapi import YTMusic
+import random
 
 # ==========================================
 # CONFIGURATION
@@ -21,8 +22,9 @@ PLAYLIST_MAPPING = {    # Key: M3U filename, Value: YouTube Music playlist name
     
     "favorite songs2.m3u": "(M0) FAVORITES",
     "Random Favorites.m3u": "(M0) FAVORITES",
-    "searched songs.m3u": "(M0) Nostalgia",
+    "searched songs.m3u": "(M0) Nostalgia"
 }
+FOLDER = "To be done"
 # ==========================================
 
 def parse_m3u(file_path):
@@ -56,14 +58,18 @@ def main():
     print("Authenticating with YouTube Music...")
     try:
         ytmusic = YTMusic('browser.json')
+        # Test the connection immediately
+        ytmusic.get_library_playlists(limit=1) 
     except Exception as e:
-        print(f"Authentication failed: {e}")
+        print(f"Authentication failed or session expired: {e}")
+        print("Please update your browser.json file.")
         return
 
     # Create unadded folder
     os.makedirs("unadded", exist_ok=True)
 
     for m3u_file, ytm_playlist_name in PLAYLIST_MAPPING.items():
+        m3u_file = os.path.join(FOLDER, m3u_file)
         print(f"\n--- Processing '{m3u_file}' -> '{ytm_playlist_name}' ---")
         
         # Validation
@@ -95,19 +101,26 @@ def main():
         skipped_count = 0
         existed_count = 0
 
-######################
+        ######################
         # Processing
+        song_counter = 0  # Track total songs across all playlists in this run
+
         for track_name in tracks_to_search:
+            song_counter += 1
+            
+
             search_results = ytmusic.search(track_name, filter='songs')
+            
             
             if not search_results:
                 print(f" - Not found: {track_name}")
                 unadded_tracks.append(track_name)
                 skipped_count += 1
                 continue
-#############
+
             best_match = search_results[0]
             video_id = best_match.get('videoId')
+            # ... (rest of your match logic remains the same)
             match_title = best_match.get('title', '').lower()
             match_artists = " ".join([a['name'] for a in best_match.get('artists', [])]).lower()
             match_signature = f"{match_title} - {match_artists}"
