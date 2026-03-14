@@ -3,10 +3,18 @@
 
 from ytmusicapi import YTMusic
 
-# PLAYLIST_NAME = "(M2) Hyper" # Replace with your actual playlist name
-PLAYLIST_NAME = "(M1) Trap & Dubstep"
+# First Row
+# PLAYLIST_NAME = "(M2) Hyper"
+# PLAYLIST_NAME = "(M1) Trap & Dubstep"
+# PLAYLIST_NAME = "(M1) Pop"
+# PLAYLIST_NAME = "(M0) FAVORITES"
 
-NUMBER_SONGS_REMOVE = 216 # Number of songs to remove
+# Second Row
+# PLAYLIST_NAME = "(M1) Chillax"
+PLAYLIST_NAME = "(M1) House"
+# PLAYLIST_NAME = "(M1) Vietnam"
+
+NUMBER_SONGS_REMOVE = 194 # Number of songs to remove
 
 
 def findPlaylistIdByName(yt):
